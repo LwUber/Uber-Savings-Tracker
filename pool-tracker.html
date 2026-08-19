@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pool Tracker</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #12181B;
+    color: #E7EDE9;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 480px;
+    background: #161D20;
+    border: 1px solid #232D31;
+    border-radius: 16px;
+    padding: 32px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #6B7A78;
+    margin-bottom: 6px;
+  }
+  .total-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .total {
+    font-family: "Courier New", monospace;
+    font-size: 44px;
+    font-weight: 700;
+    transition: color 0.4s ease;
+  }
+  .goal {
+    font-size: 18px;
+    color: #6B7A78;
+  }
+  .gauge-wrap { margin: 22px 0 10px; }
+  .gauge {
+    position: relative;
+    height: 20px;
+    border-radius: 10px;
+    background: #0D1215;
+    border: 1px solid #232D31;
+    overflow: hidden;
+  }
+  .gauge-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 0%;
+    background: linear-gradient(90deg, #B97A2A, #E8A33D);
+    transition: width 0.5s cubic-bezier(0.22,1,0.36,1);
+    border-radius: 10px;
+  }
+  .gauge-fill.over {
+    background: linear-gradient(90deg, #3D8B6A, #5FBF8F);
+  }
+  .tick {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: rgba(18,24,27,0.5);
+  }
+  .gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #4E5C5A;
+    margin-top: 4px;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 18px 0 12px;
+  }
+  .stat {
+    background: #0D1215;
+    border: 1px solid #232D31;
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6B7A78;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-family: "Courier New", monospace;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  form {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  input[type="number"] {
+    flex: 1;
+    background: #0D1215;
+    border: 1px solid #232D31;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #E7EDE9;
+    font-size: 15px;
+    outline: none;
+  }
+  input[type="number"]:focus { border-color: #E8A33D; }
+  button[type="submit"] {
+    background: #E8A33D;
+    color: #12181B;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .error {
+    color: #E0745C;
+    font-size: 13px;
+    margin-top: 8px;
+    min-height: 16px;
+  }
+  .meta {
+    margin-top: 14px;
+    font-size: 11px;
+    color: #4E5C5A;
+  }
+  .reset-btn {
+    margin-top: 12px;
+    background: none;
+    border: none;
+    color: #4E5C5A;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="eyebrow">Pool tracker</div>
+    <div class="total-row">
+      <span class="total" id="total">0</span>
+      <span class="goal">/ 20,000</span>
+    </div>
+
+    <div class="gauge-wrap">
+      <div class="gauge" id="gauge">
+        <div class="gauge-fill" id="gaugeFill"></div>
+      </div>
+      <div class="gauge-labels"><span>0</span><span>20,000</span></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Filled</div>
+        <div class="stat-value" id="filledPct">0%</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label" id="remLabel">Remaining</div>
+        <div class="stat-value" id="remaining">20,000</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Avg per day</div>
+        <div class="stat-value" id="avgPerDay">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Added today</div>
+        <div class="stat-value" id="addedToday">—</div>
+      </div>
+    </div>
+
+    <form id="addForm">
+      <input type="number" step="any" id="amountInput" placeholder="Add amount" />
+      <button type="submit">Add</button>
+    </form>
+    <div class="error" id="error"></div>
+
+    <div class="meta" id="meta"></div>
+    <button class="reset-btn" id="resetBtn">Reset pool to 0</button>
+  </div>
+
+<script>
+  const GOAL = 20000;
+  const STORAGE_KEY = "pool-entries";
+
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+
+  function daysBetween(startStr, endStr) {
+    const start = new Date(startStr + "T00:00:00");
+    const end = new Date(endStr + "T00:00:00");
+    return Math.round((end - start) / 86400000) + 1;
+  }
+
+  function loadEntries() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveEntries(entries) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      document.getElementById("error").textContent = "";
+    } catch (e) {
+      document.getElementById("error").textContent = "Couldn't save: " + e.message;
+    }
+  }
+
+  function fmt(n) {
+    return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
+
+  function render() {
+    const entries = loadEntries();
+    const total = entries.reduce((s, e) => s + e.amount, 0);
+    const pct = Math.max(0, Math.min(100, (total / GOAL) * 100));
+    const remaining = Math.max(0, GOAL - total);
+    const overshoot = total > GOAL ? total - GOAL : 0;
+
+    document.getElementById("total").textContent = fmt(total);
+    document.getElementById("filledPct").textContent = pct.toFixed(1) + "%";
+
+    const fill = document.getElementById("gaugeFill");
+    fill.style.width = pct + "%";
+    fill.classList.toggle("over", overshoot > 0);
+
+    if (overshoot > 0) {
+      document.getElementById("remLabel").textContent = "Over goal by";
+      document.getElementById("remaining").textContent = fmt(overshoot);
+    } else {
+      document.getElementById("remLabel").textContent = "Remaining";
+      document.getElementById("remaining").textContent = fmt(remaining) + " (" + (100-pct).toFixed(1) + "%)";
+    }
+
+    if (entries.length) {
+      const firstDate = entries.reduce((min, e) => e.date < min ? e.date : min, entries[0].date);
+      const spanDays = daysBetween(firstDate, todayStr());
+      const avg = spanDays > 0 ? total / spanDays : 0;
+      document.getElementById("avgPerDay").textContent = fmt(avg);
+
+      const today = todayStr();
+      const todayEntries = entries.filter(e => e.date === today);
+      const todaySum = todayEntries.reduce((s,e) => s + e.amount, 0);
+      document.getElementById("addedToday").textContent = todayEntries.length ? fmt(todaySum) + " (" + todayEntries.length + "×)" : "—";
+
+      document.getElementById("meta").textContent =
+        "Tracking since " + firstDate + " · " + spanDays + " day" + (spanDays===1?"":"s") + " · " + entries.length + " entr" + (entries.length===1?"y":"ies");
+    } else {
+      document.getElementById("avgPerDay").textContent = "—";
+      document.getElementById("addedToday").textContent = "—";
+      document.getElementById("meta").textContent = "";
+    }
+  }
+
+  document.getElementById("addForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const input = document.getElementById("amountInput");
+    const n = parseFloat(input.value);
+    const errorEl = document.getElementById("error");
+    if (isNaN(n)) {
+      errorEl.textContent = "Enter a number.";
+      return;
+    }
+    errorEl.textContent = "";
+    const entries = loadEntries();
+    entries.push({ amount: n, date: todayStr(), ts: Date.now() });
+    saveEntries(entries);
+    input.value = "";
+    render();
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", function() {
+    saveEntries([]);
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>
